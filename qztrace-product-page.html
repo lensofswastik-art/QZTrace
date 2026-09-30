@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QZTrace — Test What Changed. Ship with Proof. | QualiZeal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1C1F25; --body:#4B4F58; --muted:#6C757D;
+  --blue:#0096FF; --royal:#246BFD; --pink:#F53E5A; --pink-dk:#DD2E49;
+  --navy:#001726; --navy-deep:#001726; --blue-lt:#4DB5FF;
+  --light:#F6F8FA; --tint:#E9F0FF; --line:#E3E7EE;
+  --grad:#246BFD;
+  --font:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(90px + env(safe-area-inset-top,0px));background:#fff}
+body{margin:0;background:#fff;color:var(--body);font-family:var(--font);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--font);color:var(--ink);margin:0;letter-spacing:-0.02em}
+p{margin:0}
+a{color:inherit;text-decoration:none}
+img,svg{max-width:100%}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--royal);outline-offset:3px;border-radius:6px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+.hl{color:var(--royal)}
+.on-dark-hl,.caps .hl,.case .hl{color:var(--blue)}
+.center{text-align:center}
+
+/* eyebrow pills, as used on NexaAI / ValidAIte */
+.chip{display:inline-flex;align-items:center;gap:8px;font:700 14px/1 var(--font);padding:9px 18px;border-radius:999px;background:var(--tint);color:var(--royal)}
+.chip.on-dark{background:#CFF1FF;color:#0B1B3F}
+
+/* buttons */
+/* Buttons — spec from Figma "Project QZ V2" node 8545:1341:
+   #F53E5A fill, 1px outside stroke #7A1F2D, inner highlight 0 2px #F8788C, inner shade 0 -2px #D0354C,
+   full-round, 10px/20px padding, 52px tall, 32px icon, 8px gap. Type/icon scaled to 16px/20px for this page. */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 22px;border:none;border-radius:100px;cursor:pointer;
+  font:700 16px/1 var(--font);letter-spacing:-0.02em;white-space:nowrap;
+  transition:background-color .18s ease,box-shadow .18s ease,transform .12s ease}
+.btn .bi{flex:none;width:20px;height:20px;color:#F5FBFF}
+.btn-pink{background:#F53E5A;color:#F6F6F7;
+  box-shadow:0 0 0 1px #7A1F2D, inset 0 2px 0 #F8788C, inset 0 -2px 0 #D0354C}
+.btn-pink:hover{background:#EE3350}
+.btn-pink:active{transform:translateY(1px);box-shadow:0 0 0 1px #7A1F2D, inset 0 -1px 0 #F8788C, inset 0 2px 0 #C22E45}
+/* Secondary on dark: same geometry and depth, translucent */
+.btn-line{background:rgba(255,255,255,.06);color:#F6F6F7;
+  box-shadow:0 0 0 1px rgba(255,255,255,.28), inset 0 2px 0 rgba(255,255,255,.14), inset 0 -2px 0 rgba(0,0,0,.28)}
+.btn-line:hover{background:rgba(255,255,255,.11)}
+.btn-line:active{transform:translateY(1px);box-shadow:0 0 0 1px rgba(255,255,255,.28), inset 0 -1px 0 rgba(255,255,255,.1), inset 0 2px 0 rgba(0,0,0,.3)}
+.btn:focus-visible{outline:2px solid #0096FF;outline-offset:4px;border-radius:100px}
+@media(max-width:560px){.btn{font-size:15px;white-space:normal;text-align:center}}
+
+/* section heads */
+.sec{padding:110px 0}
+.sec-head{max-width:760px;margin:0 auto 56px;text-align:center}
+.sec-head .chip{margin-bottom:18px}
+.sec-head h2{font-size:clamp(30px,3.4vw,40px);font-weight:700;line-height:1.2}
+.sec-head p{font-size:17px;margin-top:14px;color:var(--body)}
+
+/* ================= HEADER (matches live qualizeal.com) ================= */
+.site-header{position:sticky;top:0;z-index:60;background:#F8F9FA;border-bottom:1px solid #212A43}
+.site-header .in{display:flex;align-items:center;justify-content:space-between;height:80px;padding:0 60px}
+.site-logo{display:block;line-height:0}
+.site-logo img{width:170px;height:auto;display:block}
+.nav{display:flex;align-items:center;gap:50px}
+.nav a{font:500 14px/1 var(--font);letter-spacing:0.5px;color:#191E2D;transition:color .2s ease}
+.nav a:hover{color:#0096FF}
+.menu-btn{display:none;background:none;border:1px solid #D5DAE2;border-radius:8px;padding:9px 12px;color:#191E2D;font:600 14px/1 var(--font)}
+@media(max-width:1100px){.nav{gap:30px}.site-header .in{padding:0 32px}}
+@media(max-width:960px){.nav{display:none}.menu-btn{display:block}.site-header .in{padding:0 20px}.site-logo img{width:140px}}
+.logo-ph{display:flex;align-items:center;gap:10px;font:800 21px/1 var(--font);letter-spacing:0.02em;color:var(--royal)}
+.logo-ph i{width:26px;height:26px;border-radius:7px;background:var(--grad);display:block}
+
+/* ================= 1 · HERO ================= */
+.hero{position:relative;z-index:2;background:var(--navy-deep);color:#fff;padding:96px 0 0;text-align:center;isolation:isolate}
+.hero::before{content:"";position:absolute;inset:0;z-index:-2;background:
+  radial-gradient(60% 55% at 50% 0%,rgba(0,150,255,.20) 0%,rgba(0,150,255,0) 70%),
+  radial-gradient(40% 40% at 90% 70%,rgba(36,107,253,.10) 0%,rgba(36,107,253,0) 70%)}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;background-image:
+  linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(70% 60% at 50% 30%,#000 30%,transparent 80%);
+  mask-image:radial-gradient(70% 60% at 50% 30%,#000 30%,transparent 80%)}
+.logo-slot{display:inline-flex;align-items:center;justify-content:center;min-width:230px;height:64px;padding:0 28px;margin-bottom:34px;border:1px dashed rgba(255,255,255,.35);border-radius:12px;font:600 13px/1 var(--font);letter-spacing:.04em;color:rgba(255,255,255,.5)}
+.hero h1{color:#fff;font-size:clamp(38px,5.4vw,64px);font-weight:700;line-height:1.08;max-width:14ch;margin:0 auto}
+.hero h1 .hl{color:var(--blue)}
+.hero .sub{font-size:19px;line-height:1.6;color:rgba(255,255,255,.76);max-width:660px;margin:24px auto 38px}
+.hero-ctas{display:flex;justify-content:center;flex-wrap:wrap;gap:14px}
+.assure{list-style:none;margin:28px 0 0;padding:0;display:flex;justify-content:center;flex-wrap:wrap;gap:10px 28px}
+.assure li{display:flex;align-items:center;gap:8px;font:600 14px/1.3 var(--font);color:rgba(255,255,255,.72)}
+.assure svg{width:17px;height:17px;flex:none;color:#0096FF}
+@media(max-width:560px){.hero-ctas .btn{width:100%}}
+
+/* hero product view */
+.product-view{position:relative;z-index:3;max-width:1000px;margin:72px auto -150px;background:#fff;border-radius:18px;box-shadow:0 30px 80px rgba(0,10,20,.5);text-align:left;overflow:hidden;color:var(--ink)}
+.pv-top{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);background:#FBFCFD}
+.pv-dots{display:flex;gap:6px}
+.pv-dots i{width:10px;height:10px;border-radius:50%;background:#E0E4EA;display:block}
+.pv-title{font:600 14px/1.3 var(--font);color:var(--ink)}
+.pv-title em{font-style:normal;color:var(--muted);font-weight:500}
+.pv-badge{margin-left:auto;font:700 12px/1 var(--font);color:var(--royal);background:var(--tint);padding:7px 12px;border-radius:999px;white-space:nowrap}
+.pv-body{display:grid;grid-template-columns:1fr 0.9fr 1.15fr;gap:0}
+.pv-col{padding:24px 24px 28px}
+.pv-col+.pv-col{border-left:1px solid var(--line)}
+.pv-label{font:700 12px/1 var(--font);letter-spacing:.04em;color:var(--muted);margin-bottom:16px}
+.chg{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--light);margin-bottom:8px;font:500 13px/1.3 var(--mono);color:var(--ink)}
+.chg b{font:700 12px/1 var(--font);color:#1A9E5F;white-space:nowrap}
+.chg b s{color:var(--pink);text-decoration:none;margin-left:6px}
+.bigstat{font:800 44px/1 var(--font);letter-spacing:-0.03em;color:var(--ink)}
+.bar{height:8px;border-radius:99px;background:var(--line);margin:14px 0 18px;overflow:hidden}
+.bar i{display:block;height:100%;width:92%;background:var(--royal);border-radius:99px}
+.kv{display:flex;justify-content:space-between;font:500 13px/1 var(--font);padding:10px 0;border-top:1px solid var(--line);color:var(--body)}
+.kv b{color:var(--ink)}
+.tst{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font:500 13px/1.35 var(--font);color:var(--ink)}
+.tst:last-of-type{border-bottom:none}
+.tst .tick{flex:none;width:18px;height:18px;border-radius:50%;background:var(--tint);display:grid;place-items:center}
+.tst .tick svg{width:11px;height:11px;color:var(--royal);stroke-width:3}
+.risk{margin-left:auto;font:700 11px/1 var(--font);padding:5px 9px;border-radius:999px;white-space:nowrap}
+.risk.hi{background:#FDE7EB;color:#C71F3A}
+.risk.md{background:#FFF3DC;color:#9A6200}
+.risk.lo{background:#E4F6EC;color:#177A48}
+.pv-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;border-top:1px solid var(--line);background:#FBFCFD;font:600 13px/1.3 var(--font);color:var(--body)}
+.pv-foot b{color:var(--ink)}
+.pv-foot .spec{font:700 13px/1 var(--font);color:#fff;background:var(--navy);padding:10px 16px;border-radius:10px;white-space:nowrap}
+@media(max-width:900px){
+  .pv-body{grid-template-columns:1fr}
+  .pv-col+.pv-col{border-left:none;border-top:1px solid var(--line)}
+  .pv-title em{display:none}
+  .product-view{margin-bottom:-90px}
+}
+
+/* ================= 2 · MOVING STRIP ================= */
+.strip{background:var(--light);padding:230px 0 100px}
+.strip h2{font-size:clamp(28px,3.2vw,38px);font-weight:700;line-height:1.25;max-width:22ch;margin:0 auto 48px;text-align:center}
+.marquee{position:relative;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.marquee+.marquee{margin-top:16px}
+.track{display:flex;gap:16px;width:max-content;animation:slide 38s linear infinite}
+.marquee.rev .track{animation-direction:reverse;animation-duration:44s}
+.marquee:hover .track{animation-play-state:paused}
+.pain{display:inline-flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:14px 24px 14px 14px;font:700 16px/1 var(--font);color:var(--ink);white-space:nowrap}
+.pain i{width:30px;height:30px;border-radius:50%;background:#FDE7EB;display:grid;place-items:center;flex:none}
+.pain i svg{width:15px;height:15px;color:#F53E5A;stroke-width:2.5}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(calc(-50% - 8px))}}
+@media (prefers-reduced-motion:reduce){.track{animation:none;flex-wrap:wrap;width:auto;justify-content:center}.marquee{-webkit-mask-image:none;mask-image:none}.marquee.dup{display:none}}
+
+/* ================= 3 · WHAT IS QZTRACE + 4 · PROOF STRIP ================= */
+.what .grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start}
+.what .chip{margin-bottom:22px}
+.what h2{font-size:clamp(30px,3.4vw,42px);font-weight:700;line-height:1.18}
+.what .copy p{font-size:17px;line-height:1.75}
+.what .copy p+p{margin-top:18px}
+.what .copy p.lead{font-size:19px;font-weight:500;color:var(--ink);line-height:1.6}
+.ask{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:34px;padding:22px 24px;border-radius:16px;background:var(--tint)}
+.ask p{font:700 16px/1.45 var(--font)!important;color:var(--ink)}
+.ask .btn{flex:none}
+@media(max-width:960px){.what .grid{grid-template-columns:1fr;gap:32px}.ask{flex-direction:column;align-items:flex-start}}
+
+.proof{margin-top:84px;border-radius:22px;background:var(--navy);padding:0;box-shadow:0 20px 50px rgba(0,23,38,.18)}
+.proof-in{display:grid;grid-template-columns:repeat(4,1fr)}
+.proof-item{display:flex;align-items:center;gap:16px;padding:30px 28px;color:#fff}
+.proof-item+.proof-item{border-left:1px solid rgba(255,255,255,.1)}
+.proof-item .pi{flex:none;width:48px;height:48px;border-radius:14px;background:rgba(0,150,255,.12);border:1px solid rgba(0,150,255,.28);display:grid;place-items:center}
+.proof-item .pi svg{width:22px;height:22px;color:var(--blue-lt)}
+.proof-item b{font:700 17px/1.3 var(--font);letter-spacing:-0.01em}
+.proof-item b em{font-style:normal;font-weight:800;font-size:30px;display:block;line-height:1;margin-bottom:4px;color:var(--blue-lt)}
+@media(max-width:960px){.proof-in{grid-template-columns:1fr 1fr}.proof-item:nth-child(3){border-left:none}.proof-item:nth-child(n+3){border-top:1px solid rgba(255,255,255,.1)}}
+@media(max-width:560px){.proof-in{grid-template-columns:1fr}.proof-item+.proof-item{border-left:none;border-top:1px solid rgba(255,255,255,.1)}}
+
+/* ================= 5 · CAPABILITIES ================= */
+.caps{background:var(--navy);color:#fff}
+.caps .sec-head h2{color:#fff}
+.cap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.cap{position:relative;display:flex;flex-direction:column;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:38px 34px 32px;overflow:hidden}
+.cap::before{content:"";position:absolute;left:34px;right:34px;top:0;height:1px;background:linear-gradient(90deg,rgba(0,150,255,0),rgba(0,150,255,.6),rgba(0,150,255,0))}
+.cap .ci{width:58px;height:58px;border-radius:16px;background:rgba(0,150,255,.12);border:1px solid rgba(0,150,255,.28);display:grid;place-items:center;margin-bottom:26px}
+.cap .ci svg{width:26px;height:26px;color:var(--blue-lt)}
+.cap h3{color:#fff;font-size:23px;font-weight:700;line-height:1.25;margin-bottom:14px}
+.cap p{font-size:15.5px;line-height:1.7;color:rgba(255,255,255,.72)}
+.cap p+p{margin-top:12px}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:26px}
+.tags span{font:600 12.5px/1 var(--font);color:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:8px 12px}
+@media(max-width:960px){.cap-grid{grid-template-columns:1fr}}
+
+/* ================= 6 · HOW IT WORKS ================= */
+.how{background:var(--light)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;list-style:none;margin:0;padding:0;counter-reset:none}
+.step{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;transition:box-shadow .2s ease,transform .2s ease}
+.step:hover{box-shadow:0 18px 40px rgba(0,23,38,.08);transform:translateY(-2px)}
+.step-media{position:relative;aspect-ratio:16/9;background:#001726;overflow:hidden}
+.step-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease}
+.step:hover .step-media img{transform:scale(1.03)}
+.step-media::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,23,38,0) 45%,rgba(0,23,38,.55) 100%)}
+.step-no{position:absolute;left:16px;top:16px;z-index:1;font:700 12px/1 var(--font);letter-spacing:.04em;color:#fff;background:rgba(0,23,38,.55);border:1px solid rgba(255,255,255,.22);padding:8px 12px;border-radius:999px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.step-ic{position:absolute;left:16px;bottom:16px;z-index:1;width:40px;height:40px;border-radius:12px;background:#fff;display:grid;place-items:center;color:var(--royal);box-shadow:0 6px 16px rgba(0,23,38,.25)}
+.step-ic svg{width:20px;height:20px}
+.step-body{padding:24px 24px 28px}
+.step h3{font-size:19px;font-weight:700;line-height:1.3;margin-bottom:10px}
+.step p{font-size:15px;line-height:1.65;color:var(--body)}
+@media(max-width:1000px){.steps{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.steps{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.step,.step-media img{transition:none}.step:hover{transform:none}.step:hover .step-media img{transform:none}}
+
+/* ================= 7 · BUSINESS OUTCOMES ================= */
+.out-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.out{border:1px solid var(--line);border-radius:22px;padding:40px 34px;background:#fff;transition:box-shadow .2s ease}
+.out:hover{box-shadow:0 18px 40px rgba(28,31,37,.08)}
+.out .num{font:800 clamp(46px,5vw,60px)/1 var(--font);letter-spacing:-0.035em;color:var(--ink);display:inline-block;padding-bottom:18px;border-bottom:3px solid var(--royal)}
+.out h3{font-size:19px;font-weight:700;line-height:1.35;margin:18px 0 10px}
+.out p{font-size:15px;line-height:1.65}
+.out .mini{display:flex;gap:10px;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)}
+.out .mini span{flex:1;background:var(--light);border-radius:12px;padding:12px 10px;text-align:center;font:600 12px/1.3 var(--font);color:var(--muted)}
+.out .mini span b{display:block;font:800 20px/1.1 var(--font);color:var(--ink);margin-bottom:3px}
+@media(max-width:960px){.out-grid{grid-template-columns:1fr}}
+
+/* ================= 8 · CASE STUDY ================= */
+.case{background:var(--navy);color:#fff;overflow:hidden;position:relative}
+.case::before{content:"";position:absolute;right:-200px;top:-200px;width:620px;height:620px;border-radius:50%;background:radial-gradient(circle,rgba(0,150,255,.14),rgba(0,150,255,0) 70%)}
+.case .grid{position:relative;display:grid;grid-template-columns:1.05fr 0.95fr;gap:72px;align-items:center}
+.case .chip{margin-bottom:22px}
+.case h2{color:#fff;font-size:clamp(32px,3.6vw,46px);font-weight:700;line-height:1.14}
+.case p{font-size:17px;line-height:1.75;color:rgba(255,255,255,.76);margin-top:22px;max-width:52ch}
+.shift{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:28px}
+.shift-row{display:flex;gap:16px;align-items:flex-start;padding:20px;border-radius:16px}
+.shift-row.before{background:rgba(255,255,255,.04)}
+.shift-row.after{background:rgba(0,150,255,.1);box-shadow:inset 0 0 0 1px rgba(0,150,255,.35)}
+.shift-row .tag{flex:none;font:800 11px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
+.shift-row.after .tag{background:var(--blue);color:#fff}
+.shift-row p{margin:0;font:600 16px/1.5 var(--font);color:rgba(255,255,255,.8)}
+.shift-row.after p{color:#fff}
+.shift-arrow{display:grid;place-items:center;height:40px}
+.shift-arrow svg{width:22px;height:22px;color:#0096FF}
+.saved{display:flex;align-items:baseline;gap:12px;margin-top:22px;padding-top:22px;border-top:1px solid rgba(255,255,255,.12)}
+.saved b{font:800 48px/1 var(--font);letter-spacing:-0.03em;color:#fff}
+.saved span{font:600 15px/1.4 var(--font);color:rgba(255,255,255,.7)}
+@media(max-width:960px){.case .grid{grid-template-columns:1fr;gap:44px}}
+
+/* ================= CTA + FORM ================= */
+.start{background:#fff}
+.start-card{display:grid;grid-template-columns:1.1fr 0.9fr;gap:0;border-radius:26px;overflow:hidden;border:1px solid var(--line);box-shadow:0 24px 60px rgba(28,31,37,.07)}
+.start-left{background:var(--light);padding:56px 52px}
+.start-left h2{font-size:clamp(30px,3.2vw,40px);font-weight:700;line-height:1.18}
+.start-left > p{font-size:18px;margin-top:14px;color:var(--body)}
+.weeks{list-style:none;margin:36px 0 0;padding:0;display:grid;gap:14px}
+.weeks li{display:flex;gap:16px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.weeks .wk{flex:none;font:800 12px/1 var(--font);color:#fff;background:var(--navy);border-radius:10px;padding:10px 12px;white-space:nowrap}
+.weeks li span{font:600 15px/1.45 var(--font);color:var(--ink)}
+.start-right{padding:56px 48px;background:#fff}
+.start-right h3{font-size:22px;font-weight:700;margin-bottom:26px}
+.field{margin-bottom:16px}
+.field label{display:block;font:600 13px/1 var(--font);color:var(--ink);margin-bottom:8px}
+.field input{width:100%;font:500 15px/1 var(--font);color:var(--ink);padding:15px 16px;border:1px solid #D5DAE2;border-radius:12px;background:#fff}
+.field input:focus{outline:none;border-color:var(--royal);box-shadow:0 0 0 4px rgba(36,107,253,.14)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.start-right .btn{width:100%;margin-top:10px}
+.legal{font:500 12px/1.5 var(--font);color:var(--muted);margin-top:14px}
+.legal a{color:var(--royal);text-decoration:underline}
+.form-msg{font:600 14px/1.4 var(--font);margin-top:12px;min-height:20px}
+.form-msg.err{color:#C71F3A}
+.form-msg.ok{color:#177A48}
+@media(max-width:960px){.start-card{grid-template-columns:1fr}.start-left,.start-right{padding:40px 28px}}
+@media(max-width:480px){.row2{grid-template-columns:1fr}}
+
+/* ================= 9 · FAQ ================= */
+.faq{background:var(--light)}
+.faq .grid{display:grid;grid-template-columns:0.8fr 1.2fr;gap:72px;align-items:start}
+.faq-side{position:sticky;top:120px}
+.faq-side .chip{margin-bottom:18px}
+.faq-side h2{font-size:clamp(30px,3.4vw,40px);font-weight:700;line-height:1.2}
+.faq-side p{font-size:16px;margin-top:16px}
+.faq-side .btn{margin-top:28px}
+.acc{display:grid;gap:12px}
+.acc-item{background:#fff;border:1px solid var(--line);border-radius:16px;transition:border-color .2s ease,box-shadow .2s ease}
+.acc-item.open{border-color:rgba(36,107,253,.35);box-shadow:0 12px 30px rgba(36,107,253,.08)}
+.acc-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:20px;text-align:left;background:none;border:none;cursor:pointer;padding:22px 24px;font:700 17px/1.45 var(--font);color:var(--ink)}
+.acc-q .pm{flex:none;width:32px;height:32px;border-radius:50%;background:var(--tint);position:relative;transition:background .2s ease}
+.acc-q .pm::before,.acc-q .pm::after{content:"";position:absolute;left:50%;top:50%;background:var(--royal);transform:translate(-50%,-50%);border-radius:2px}
+.acc-q .pm::before{width:12px;height:2px}
+.acc-q .pm::after{width:2px;height:12px;transition:transform .25s ease}
+.acc-item.open .pm{background:var(--royal)}
+.acc-item.open .pm::before,.acc-item.open .pm::after{background:#fff}
+.acc-item.open .pm::after{transform:translate(-50%,-50%) rotate(90deg)}
+.acc-a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}
+.acc-item.open .acc-a{grid-template-rows:1fr}
+.acc-a > div{overflow:hidden}
+.acc-a p{padding:0 24px 24px;font-size:15.5px;line-height:1.75;color:var(--body)}
+@media(max-width:960px){.faq .grid{grid-template-columns:1fr;gap:36px}.faq-side{position:static}}
+@media (prefers-reduced-motion:reduce){.acc-a,.acc-q .pm::after{transition:none}html{scroll-behavior:auto}}
+
+/* ================= FOOTER ================= */
+.site-footer{background:#F8F9FA;border-top:1px solid var(--line);padding:72px 0 28px}
+.foot-top{display:grid;grid-template-columns:1.2fr 2fr;gap:48px;padding-bottom:40px;border-bottom:1px solid var(--line)}
+.foot-top h2{font-size:40px;font-weight:500;color:#191E2D;letter-spacing:-0.02em}
+.foot-top .logo-ph{margin-top:22px}
+.foot-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.foot-cols h4{font:700 15px/1 var(--font);color:#191E2D;margin-bottom:16px;letter-spacing:0}
+.foot-cols a{display:block;font:500 14px/1 var(--font);color:var(--body);margin-bottom:12px}
+.foot-cols a:hover{color:var(--blue)}
+.foot-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px;font:500 12px/1.4 var(--font);color:var(--muted)}
+.foot-bottom a{margin-left:18px}
+@media(max-width:860px){.foot-top{grid-template-columns:1fr}.foot-cols{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="in">
+    <a href="https://qualizeal.com" class="site-logo" aria-label="QualiZeal home"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKkAAAAlCAYAAAA5p8mMAAAEEElEQVR42u2aQW7iMBSGfYTcoByB5agaEEdgMxIwi3KD4QblBkVqS7sYid6gvQFH4Ag5Qhal06UnD6WK9af4x1GxHPX90lPVONjOe5//xBCjUqlUKpVKpVKpVCqVSqVSqVSqb6Ab2zOqVnkrIzOd160dmUd7Y9b22TzYrYT8L8dJArLDuR9xb5eG6d7O4TN9c4rWNg8C9cFuPsY4XBcoaI63dgx9b1vF2i6Mqzu7aNUPiOUB6kJZgPrMTXThKlsfkmePBcCBCei55x4SwgFYup+pFwKBptk/h9q9BlDIHLFQdVtQ5JIv6OepTV+B9bVlFOCmPNdVeACPAmgfCsniKgKkFDhJfEchrV00EqRSDxe2bkEqhQ4AFICKACkkDcboIKTV+BTS/JQIdFHruml3IJVnNJkATkaA2dhMnhOryeaf3PqzWJAibMRNo0EaOLaVPJ0E6V97YYhCXRRr3A1ISyhgEgVuXgDCHCcdA1JMGI6TLKTE+WNAii6Kbpo+pJK0gAIIwOimcSBF0Jpumhyk8BgFm6VokGKNEbr0ISXFe/05GX1y0VsAJDsDpMxFn3Cs5CDlBtD+mbS9i+7kbolumjqkbqFfjKO34ey6jJ1B3dkFgnUGSDlkzcXSSwZSzx2HQHqGHT3kt3k9y3QhRaju7QoAtWUUnolHgNSTqFs7xvGSgZRslqJA2nTRvDqeoZumC6kIigyAHsJezi5aOunLCQCsGKSe5zpoAzeNByme/+fTxR8O6Y78yhT8uOG7ppQhzd1dPQIqsR/M5ic9k8pfTDLTo31GSNnuGBcMtseGFN1Lckk2S2fYOHEXhfYM29OFtHIyAfR9OL0SKDH2w+kKv7JCED3OlpHxCzyf3TYx2aSPCJBy94oDKZ8HjofnpAlpCZ1MBACFmLzAT6dwYd5b1o0nkdcA4DbARX0QLeND2nxGhhdZIkBKXBT10DwvTUhLFZezPoCJkaPr4UWh0wJc15I41/0QUCy+nO9zUeKmhRyLDSmZbwRIw91cjAHPTQ5SAXQ//F24UP4bTvO3wezZPVaMxplbBIFCikAuHCOXONaGLstdlLspAkQCxuOQ4nwDI//iF0y4i3JTyRHSVu90fJWK0aQnLomAvv+Y9PaD6cI9Ll/qyyYHfzplP5+SAOBDXZS76TkhRTCSgFTmTZ2Pu2kSkPoAlfb95a++2ybQVpusLQGmBrWCmgT0B64EX2WFumkMSOXcJCBtLBZY/AFumgSkr8PZsrylb9wQQGuI55nbth9M5mZTO1Pgm92rarXmVezkmLQdhU0KXwW4tt9N3c+5mzZZYHUbDxfEtR27be68ZW4h/eL88Nbapp9j84R3VlE853X9NjTwsyqVSqVSqVQqlUqlUqlUKpVKpVKpuq3/I7GufwS7tK0AAAAASUVORK5CYII=" alt="QualiZeal" width="170" height="37"></a>
+    <nav class="nav" aria-label="Primary">
+      <a href="https://qualizeal.com/services/">Services</a>
+      <a href="https://qualizeal.com/industries/">Industries</a>
+      <a href="#">Next Gen AI Solutions</a>
+      <a href="https://qualizeal.com/insights/">Insights</a>
+      <a href="https://qualizeal.com/about/">About</a>
+      <a href="https://qualizeal.com/contact/">Contact</a>
+    </nav>
+    <button class="menu-btn" type="button">Menu</button>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= 1 · HERO ================= -->
+<section class="hero">
+  <div class="wrap">
+    <!-- QZTrace logo goes here: replace this slot with <img src="qztrace-logo.svg" alt="QZTrace" height="56"> -->
+    <div class="logo-slot" aria-hidden="true">QZTrace logo</div>
+    <h1>Test What Changed. <span class="hl">Ship with Proof.</span></h1>
+    <p class="sub">QZTrace’s purpose-built agents map every test to the exact code it exercises, so every build runs only on the tests that matter.</p>
+    <div class="hero-ctas">
+      <a href="#start" class="btn btn-pink"><svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/> <path d="M17 3h2a2 2 0 0 1 2 2v2"/> <path d="M21 17v2a2 2 0 0 1-2 2h-2"/> <path d="M7 21H5a2 2 0 0 1-2-2v-2"/> <circle cx="12" cy="12" r="3"/> <path d="m16 16-1.9-1.9"/></svg>Start Your Free Readiness Assessment</a>
+      <a href="#how" class="btn btn-line"><svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="8" x="3" y="3" rx="2"/> <path d="M7 11v4a2 2 0 0 0 2 2h4"/> <rect width="8" height="8" x="13" y="13" rx="2"/></svg>See How It Works</a>
+    </div>
+    <ul class="assure">
+      <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/> <path d="m9 12 2 2 4-4"/></svg>Free, read-only scan</li>
+      <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/> <path d="m9 12 2 2 4-4"/></svg>First impact report in 3 weeks</li>
+      <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/> <path d="m9 12 2 2 4-4"/></svg>Self-hosted, reversible in one click</li>
+    </ul>
+
+    <!-- Illustrative product view: replace values with a real QZTrace screen before launch -->
+    <div class="product-view" role="img" aria-label="Example QZTrace impact report: three changed methods, 92 percent coverage of the diff, and 18 of 2,340 tests selected to run">
+      <div class="pv-top" aria-hidden="true">
+        <div class="pv-dots"><i></i><i></i><i></i></div>
+        <div class="pv-title">Impact report <em>&nbsp;feature/checkout-v2 → main</em></div>
+        <span class="pv-badge">Build #4182</span>
+      </div>
+      <div class="pv-body" aria-hidden="true">
+        <div class="pv-col">
+          <div class="pv-label">Changed in this build</div>
+          <div class="chg">PaymentService.Authorize()<b>+12<s>−3</s></b></div>
+          <div class="chg">CartTotals.ApplyDiscount()<b>+4<s>−1</s></b></div>
+          <div class="chg">TaxRules.Resolve()<b>+7<s>−0</s></b></div>
+        </div>
+        <div class="pv-col">
+          <div class="pv-label">Coverage of the diff</div>
+          <div class="bigstat">92%</div>
+          <div class="bar"><i></i></div>
+          <div class="kv">Risk-ranked gaps <b>2</b></div>
+          <div class="kv">Manual sessions linked <b>3</b></div>
+        </div>
+        <div class="pv-col">
+          <div class="pv-label">Tests to run · 18 of 2,340</div>
+          <div class="tst"><span class="tick"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>Checkout › card authorization<span class="risk hi">High risk</span></div>
+          <div class="tst"><span class="tick"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>Cart › stacked discount codes<span class="risk md">Medium</span></div>
+          <div class="tst"><span class="tick"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>Tax › cross-state order<span class="risk lo">Low</span></div>
+        </div>
+      </div>
+      <div class="pv-foot" aria-hidden="true"><span><b>2,322 tests skipped</b> — no changed code exercised</span><span class="spec">Test Run Spec ready</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2 · MOVING STRIP ================= -->
+<section class="strip" aria-labelledby="strip-h">
+  <div class="wrap">
+    <h2 id="strip-h">Everything changed in your build; what did testing <span class="hl">actually cover?</span></h2>
+  </div>
+  <div class="marquee" id="mq1"><div class="track"></div></div>
+  <div class="marquee rev dup" id="mq2" aria-hidden="true"><div class="track"></div></div>
+</section>
+
+<!-- ================= 3 · WHAT IS QZTRACE ================= -->
+<section class="sec what" aria-labelledby="what-h">
+  <div class="wrap">
+    <div class="grid">
+      <div>
+        <span class="chip">What is QZTrace</span>
+        <h2 id="what-h">QualiZeal’s Intelligent Impact Analysis Powered with <span class="hl">Agentic Precision</span></h2>
+      </div>
+      <div class="copy">
+        <p class="lead">No more guessing games built on traditional impact analysis built on static models, forcing your teams to burn out with full-suite regression and hours of cloud compute on code that never changed.</p>
+        <p>QZTrace’s active agents reason, plan, and verify changes, building a living map across your repositories, microservices, and coverage data to continuously direct testing where risk actually lives.</p>
+        <div class="ask">
+          <p>Ready to replace overtesting with a single, evidence-backed answer?</p>
+          <a href="#start" class="btn btn-pink"><svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Let’s Talk</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 4 · PROOF STRIP ================= -->
+    <div class="proof" role="list" aria-label="QZTrace at a glance">
+      <div class="proof-in">
+        <div class="proof-item" role="listitem">
+          <span class="pi"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8"/> <rect width="16" height="12" x="4" y="8" rx="2"/> <path d="M2 14h2"/> <path d="M20 14h2"/> <path d="M15 13v2"/> <path d="M9 13v2"/></svg></span>
+          <b><em>10</em>specialized agents</b>
+        </div>
+        <div class="proof-item" role="listitem">
+          <span class="pi"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 16 4-4-4-4"/> <path d="m6 8-4 4 4 4"/> <path d="m14.5 4-5 16"/></svg></span>
+          <b>No code rewrites</b>
+        </div>
+        <div class="proof-item" role="listitem">
+          <span class="pi"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/> <path d="m9 12 2 2 4-4"/></svg></span>
+          <b>Counters-only data</b>
+        </div>
+        <div class="proof-item" role="listitem">
+          <span class="pi"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/> <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span>
+          <b>Reversible in one click</b>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 5 · CAPABILITIES ================= -->
+<section class="sec caps" aria-labelledby="caps-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="chip on-dark">Capabilities &amp; Features</span>
+      <h2 id="caps-h">One system for impact, coverage, and proof</h2>
+    </div>
+    <div class="cap-grid">
+      <article class="cap">
+        <span class="ci"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/> <line x1="22" x2="18" y1="12" y2="12"/> <line x1="6" x2="2" y1="12" y2="12"/> <line x1="12" x2="12" y1="6" y2="2"/> <line x1="12" x2="12" y1="22" y2="18"/></svg></span>
+        <h3>Precision, Not Volume</h3>
+        <p>QZTrace selects the individual test that a change actually touches, never the whole suite it lives in.</p>
+        <p>It compares a feature branch against main, not only build to build.</p>
+        <div class="tags"><span>Test-level selection</span><span>Branch vs. main</span></div>
+      </article>
+      <article class="cap">
+        <span class="ci"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/> <path d="M17 3h2a2 2 0 0 1 2 2v2"/> <path d="M21 17v2a2 2 0 0 1-2 2h-2"/> <path d="M7 21H5a2 2 0 0 1-2-2v-2"/> <circle cx="12" cy="12" r="1"/> <path d="M18.944 12.33a1 1 0 0 0 0-.66 7.5 7.5 0 0 0-13.888 0 1 1 0 0 0 0 .66 7.5 7.5 0 0 0 13.888 0"/></svg></span>
+        <h3>Total Visibility with Every Build</h3>
+        <p>Coverage is measured against this release’s changed code, not last quarter’s average. So, the red gaps are real, current, and actionable.</p>
+        <p>Manual and exploratory sessions feed the same inventory as automation, so nothing you test by hand disappears from the record.</p>
+        <div class="tags"><span>Per-release coverage</span><span>Manual + automated</span></div>
+      </article>
+      <article class="cap">
+        <span class="ci"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/> <rect width="20" height="8" x="2" y="14" rx="2" ry="2"/> <line x1="6" x2="6.01" y1="6" y2="6"/> <line x1="6" x2="6.01" y1="18" y2="18"/></svg></span>
+        <h3>Enterprise-Grade by Design</h3>
+        <p>QZTrace installs as one system—impact analysis, coverage, manual capture, and reporting together—not four licensed products stitched together with agents.</p>
+        <p>Instrumentation is PR-gated, visually verified, self-hosted, and reversible in a single click.</p>
+        <div class="tags"><span>Self-hosted</span><span>PR-gated</span><span>One-click reversible</span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 6 · HOW IT WORKS ================= -->
+<section class="sec how" id="how" aria-labelledby="how-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="chip">How it Works</span>
+      <h2 id="how-h">Six Unique Steps with <span class="hl">Purpose-built Agents</span> at Every One</h2>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <div class="step-media">
+          <img src="data:image/webp;base64,UklGRrwEAABXRUJQVlA4ILAEAADQPQCdASq4AfgAPu12s1Qpui+opJUYu0AdiWlu4Wxg5ZS4v/m//+j1qkOK3//nboieovHEx8hcNmaQIuG58ibGzNIEXDc+QuGiIuG5/a1BEM876d8ioNRbnyFw6ZX4FyY+QuGiIuG58hcUff6hsb8J4k0+3wQt0Hji4bnyFw0RGf2G/UqFv4cROMQs9fVcNpK/3q4Ndz/FA30k0L4mouIoeakPc1AahUGotz5Dk1cHInP7/O+aXGF346fefTk81HtOI0f7b2b+4VSFukJCHFsNhz+34aFykkB4OxWr+n5S5mBFP3sbxWXfOleYG15k8uvoRUUR4i5SCjuybxYFyYJGEgejp73rSx4xOY5ndsrBvbeKROML1K6cmEF8doUlHCHhXw5oITyN+5hxBxXmXCOpS7y4cTFW7YIK1C+hsCyUXopK3SYLOQW2Ah3mbGtN4hMsyAXkLTkktu7lGoBD8Tkrebp63/tdl7z8+zpgSTYaLhutKCetuSNEf4pXGddZN6L/YjfN4vty2PFzld9m9d4hUT+ndnSbIl4jYkuvmcBy+8u3ejgsVlvaytHg5Ol0rD3EosV2idxF2Pd8ag4usSrXQ2XZGho061zvglGdQLiwFQbtMhy4MuGiKI6gC82wjvu+PHqwu4sj79RcKD4TSSZ92xVoie3jiAD++zKIC7em3Ki7c2WpLHLSC3RWkOpt/rKKBJAAAAAAAAAAAAAP1tqto8qDlPizwYNfV6PHpb3tFS40rN39tQAAF1P0WEcM4FUVZwNuvjqYjafe+YHgK4p73qJuT9MDo+RIuz+Wm8ForOdv0SJ/N8X1nJ671K69IACkwHRNWgYbscOcsVSIYRGW3pYlUMjcuWGtevH632XCVdPpk0VAtzBajC3qP4j3GkCJlgABWUn1VLRQVP644nzoXCZ/S1pxS7+HHi9iLMb2G0hb5256vCFT1HZcjigH4ZAdWC3mH+GXZiS6GVPN3tKpa7rliGl7gVXgSaC+QY8gDTvYF46AwBsJXukvkUb3+Czd/qq4yAeLJX+P0EoB1Ju8QBHvrBkQSOkbzHwahOmjfxHzk09W1xpKoT3JPuobvPa7XLbEmdUJFh2PmGLed6gtxw8XGSxlC+eT6gg0hKbSdiVZIIDI6TqnGIRyB8rw4WMxo/QHa65S3/lkW5W5pX9I4bQMK9018nPwYaXhbQkVBP+QqkZITja6wrVUVMFZiVV6iMAsI4RVfeZ8HLmqFhug9pvO8e4HMD4iOCU7W4WbeNaWcGlwqkfJvCCY7dAyHPH7rS8XKntbpvTP+Gr8U1eA8+cGFrov//V3v3q+XS+GjOo5QUwDbjInNrVqHaO01rj/MKvjGq1NCkQTMUpmM3hCxKwaHed5uYE4wxwjHTnlLFbRlBqJIQl1bQwPTMwOLDZN9evgOrrN6VGvncTQ/WMaA2REwtYNiia89b3wErKnn3+8glBrWSuvvZEBID/UmnQK75m8fYq9WjlPQBn+yDC7J+qr+jfjT3aDriuJYqFJfrkFuo7yZZuJEslYYGxIKQbCtp4p2gSBNjO9bs+SVYfoXJQN157MfSpvssFAf/QF24ZmfbV5suK7dZe4bBr9EAA=" alt="" width="440" height="248" loading="lazy">
+          <span class="step-no">Step 01</span>
+          <span class="step-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z"/> <path d="m2 22 3-3"/> <path d="M7.5 13.5 10 11"/> <path d="M10.5 16.5 13 14"/> <path d="m18 3-4 4h6l-4 4"/></svg></span>
+        </div>
+        <div class="step-body"><h3>Connect &amp; Scan</h3><p>Read-only token. Every file and method fingerprinted. A readiness verdict before any commitment.</p></div>
+      </li>
+      <li class="step">
+        <div class="step-media">
+          <img src="data:image/webp;base64,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" alt="" width="440" height="248" loading="lazy">
+          <span class="step-no">Step 02</span>
+          <span class="step-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="18" r="3"/> <circle cx="6" cy="6" r="3"/> <path d="M13 6h3a2 2 0 0 1 2 2v7"/> <line x1="6" x2="6" y1="9" y2="21"/></svg></span>
+        </div>
+        <div class="step-body"><h3>Instrument</h3><p>Build-config changes only — no application logic rewritten. Delivered as pull requests your team approves.</p></div>
+      </li>
+      <li class="step">
+        <div class="step-media">
+          <img src="data:image/webp;base64,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" alt="" width="440" height="248" loading="lazy">
+          <span class="step-no">Step 03</span>
+          <span class="step-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg></span>
+        </div>
+        <div class="step-body"><h3>Execute</h3><p>Your existing suites run unchanged, on your infrastructure. Manual sessions count identically.</p></div>
+      </li>
+      <li class="step">
+        <div class="step-media">
+          <img src="data:image/webp;base64,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" alt="" width="440" height="248" loading="lazy">
+          <span class="step-no">Step 04</span>
+          <span class="step-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/> <path d="M3 5V19A9 3 0 0 0 21 19V5"/> <path d="M3 12A9 3 0 0 0 21 12"/></svg></span>
+        </div>
+        <div class="step-body"><h3>Collect</h3><p>Only coverage counters leave the app — no payloads, no personal data, per-test attribution as a delta.</p></div>
+      </li>
+      <li class="step">
+        <div class="step-media">
+          <img src="data:image/webp;base64,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" alt="" width="440" height="248" loading="lazy">
+          <span class="step-no">Step 05</span>
+          <span class="step-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"/> <rect x="2" y="16" width="6" height="6" rx="1"/> <rect x="9" y="2" width="6" height="6" rx="1"/> <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/> <path d="M12 12V8"/></svg></span>
+        </div>
+        <div class="step-body"><h3>Map &amp; Analyse</h3><p>Coverage matched to fingerprints, so refactoring never breaks the map. Risk-ranked gaps, per build.</p></div>
+      </li>
+      <li class="step">
+        <div class="step-media">
+          <img src="data:image/webp;base64,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" alt="" width="440" height="248" loading="lazy">
+          <span class="step-no">Step 06</span>
+          <span class="step-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/> <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/> <path d="m9 14 2 2 4-4"/></svg></span>
+        </div>
+        <div class="step-body"><h3>Act</h3><p>A prioritized Test Run Spec — what to run, what’s uncovered, and why — ready for your test team.</p></div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================= 7 · BUSINESS OUTCOMES ================= -->
+<section class="sec" aria-labelledby="out-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="chip">Business Outcomes</span>
+      <h2 id="out-h">Measured on real enterprise codebases</h2>
+    </div>
+    <div class="out-grid">
+      <article class="out">
+        <span class="num">1,547</span>
+        <h3>Lines scanned in a single onboarding pass</h3>
+        <div class="mini"><span><b>97</b>files detected</span><span><b>70</b>methods fingerprinted</span></div>
+      </article>
+      <article class="out">
+        <span class="num">$3M</span>
+        <h3>Saved</h3>
+        <p>Displacing an established, licensed quality-intelligence platform in live enterprise use.</p>
+      </article>
+      <article class="out">
+        <span class="num">3 Weeks</span>
+        <h3>To the first build-over-build impact report</h3>
+        <p>Risk-ranked changes, coverage of the diff, true gaps.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 8 · CASE STUDY ================= -->
+<section class="sec case" aria-labelledby="case-h">
+  <div class="wrap">
+    <div class="grid">
+      <div>
+        <span class="chip on-dark">Case Study</span>
+        <h2 id="case-h">Replaced a licensed incumbent. Saved $3M.</h2>
+        <p>An enterprise QE team running a full-scale application estate displaced an established, commercial quality-intelligence platform with QZTrace — moving from full-suite regression to targeted, evidence-backed testing, self-hosted, with the roadmap in their own hands.</p>
+      </div>
+      <div class="shift">
+        <div class="shift-row before"><span class="tag">Before</span><p>Full-suite regression on an established, commercial quality-intelligence platform</p></div>
+        <div class="shift-arrow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/> <path d="m19 12-7 7-7-7"/></svg></div>
+        <div class="shift-row after"><span class="tag">After</span><p>Targeted, evidence-backed testing with QZTrace — self-hosted, roadmap in their own hands</p></div>
+        <div class="saved"><b>$3M</b><span>saved by replacing the licensed incumbent</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="sec start" id="start" aria-labelledby="start-h">
+  <div class="wrap">
+    <div class="start-card">
+      <div class="start-left">
+        <h2 id="start-h">Start with a free <span class="hl">readiness scan.</span></h2>
+        <p>First impact report inside three weeks.</p>
+        <ul class="weeks">
+          <li><span class="wk">Week 1</span><span>Free, read-only readiness scan</span></li>
+          <li><span class="wk">Week 2</span><span>PR-approved instrumentation</span></li>
+          <li><span class="wk">Week 3</span><span>First build-over-build impact report, on your own numbers</span></li>
+        </ul>
+      </div>
+      <div class="start-right">
+        <h3>Ready to Test Only What Changed? Let’s Talk</h3>
+        <form id="leadForm" novalidate>
+          <div class="row2">
+            <div class="field"><label for="fn">First Name</label><input id="fn" name="fn" autocomplete="given-name" placeholder="Jordan"></div>
+            <div class="field"><label for="ln">Last Name</label><input id="ln" name="ln" autocomplete="family-name" placeholder="Lee"></div>
+          </div>
+          <div class="field"><label for="em">Work Email</label><input id="em" name="em" type="email" autocomplete="email" placeholder="jordan@company.com"></div>
+          <button class="btn btn-pink" type="submit"><svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/> <path d="m21.854 2.147-10.94 10.939"/></svg>Get My Free Readiness Scan</button>
+          <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
+          <p class="legal">By clicking the button, you are agreeing to the QualiZeal <a href="#">Terms of Use</a> and <a href="#">Privacy Policy</a>.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 9 · FAQ ================= -->
+<section class="sec faq" aria-labelledby="faq-h">
+  <div class="wrap">
+    <div class="grid">
+      <div class="faq-side">
+        <span class="chip">FAQs</span>
+        <h2 id="faq-h">Questions teams ask before their first scan</h2>
+        <p>Pricing is scoped to your application estate — talk to a QE specialist for details.</p>
+        <a href="#start" class="btn btn-pink"><svg class="bi" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Talk to a QE Specialist</a>
+      </div>
+      <div class="acc" id="acc"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="foot-top">
+      <div>
+        <h2>Quality Is Core.</h2>
+        <a href="https://qualizeal.com" class="site-logo" aria-label="QualiZeal home" style="margin-top:22px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKkAAAAlCAYAAAA5p8mMAAAEEElEQVR42u2aQW7iMBSGfYTcoByB5agaEEdgMxIwi3KD4QblBkVqS7sYid6gvQFH4Ag5Qhal06UnD6WK9af4x1GxHPX90lPVONjOe5//xBCjUqlUKpVKpVKpVCqVSqVSqVSqb6Ab2zOqVnkrIzOd160dmUd7Y9b22TzYrYT8L8dJArLDuR9xb5eG6d7O4TN9c4rWNg8C9cFuPsY4XBcoaI63dgx9b1vF2i6Mqzu7aNUPiOUB6kJZgPrMTXThKlsfkmePBcCBCei55x4SwgFYup+pFwKBptk/h9q9BlDIHLFQdVtQ5JIv6OepTV+B9bVlFOCmPNdVeACPAmgfCsniKgKkFDhJfEchrV00EqRSDxe2bkEqhQ4AFICKACkkDcboIKTV+BTS/JQIdFHruml3IJVnNJkATkaA2dhMnhOryeaf3PqzWJAibMRNo0EaOLaVPJ0E6V97YYhCXRRr3A1ISyhgEgVuXgDCHCcdA1JMGI6TLKTE+WNAii6Kbpo+pJK0gAIIwOimcSBF0Jpumhyk8BgFm6VokGKNEbr0ISXFe/05GX1y0VsAJDsDpMxFn3Cs5CDlBtD+mbS9i+7kbolumjqkbqFfjKO34ey6jJ1B3dkFgnUGSDlkzcXSSwZSzx2HQHqGHT3kt3k9y3QhRaju7QoAtWUUnolHgNSTqFs7xvGSgZRslqJA2nTRvDqeoZumC6kIigyAHsJezi5aOunLCQCsGKSe5zpoAzeNByme/+fTxR8O6Y78yhT8uOG7ppQhzd1dPQIqsR/M5ic9k8pfTDLTo31GSNnuGBcMtseGFN1Lckk2S2fYOHEXhfYM29OFtHIyAfR9OL0SKDH2w+kKv7JCED3OlpHxCzyf3TYx2aSPCJBy94oDKZ8HjofnpAlpCZ1MBACFmLzAT6dwYd5b1o0nkdcA4DbARX0QLeND2nxGhhdZIkBKXBT10DwvTUhLFZezPoCJkaPr4UWh0wJc15I41/0QUCy+nO9zUeKmhRyLDSmZbwRIw91cjAHPTQ5SAXQ//F24UP4bTvO3wezZPVaMxplbBIFCikAuHCOXONaGLstdlLspAkQCxuOQ4nwDI//iF0y4i3JTyRHSVu90fJWK0aQnLomAvv+Y9PaD6cI9Ll/qyyYHfzplP5+SAOBDXZS76TkhRTCSgFTmTZ2Pu2kSkPoAlfb95a++2ybQVpusLQGmBrWCmgT0B64EX2WFumkMSOXcJCBtLBZY/AFumgSkr8PZsrylb9wQQGuI55nbth9M5mZTO1Pgm92rarXmVezkmLQdhU0KXwW4tt9N3c+5mzZZYHUbDxfEtR27be68ZW4h/eL88Nbapp9j84R3VlE853X9NjTwsyqVSqVSqVQqlUqlUqlUKpVKpVKpuq3/I7GufwS7tK0AAAAASUVORK5CYII=" alt="QualiZeal" width="170" height="37"></a>
+      </div>
+      <div class="foot-cols">
+        <div><h4>Services</h4><a href="#">Quality Engineering</a><a href="#">Emerging Tech Testing</a><a href="#">Advisory &amp; Transformation</a><a href="#">Digital Engineering</a></div>
+        <div><h4>Next Gen AI</h4><a href="#">NexaAI</a><a href="#">QMentisAI</a><a href="#">ValidAIte</a><a href="#">QZTrace</a></div>
+        <div><h4>Insights</h4><a href="#">Blogs</a><a href="#">Case Studies</a><a href="#">Whitepapers</a></div>
+        <div><h4>About Us</h4><a href="#">Who We Are</a><a href="#">Partners</a><a href="#">Careers</a></div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 QualiZeal. All Rights Reserved.</span>
+      <span><a href="#">Sitemap</a><a href="#">Privacy Policy</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const pains = [
+    "Full regression with every release",
+    "Hours spent on unchanged code",
+    "Gaps surface only after release",
+    "Testing overkill that burns trust and costs",
+    "Testing ambiguity with no evidence"
+  ];
+  const icon = '<i aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/> <path d="m6 6 12 12"/></svg></i>';
+  const chip = t => '<span class="pain">' + icon + t + '</span>';
+  const fill = (id, list) => {
+    const track = document.querySelector('#' + id + ' .track');
+    const once = list.map(chip).join('');
+    track.innerHTML = once + '<span aria-hidden="true" style="display:contents">' + once + '</span>';
+  };
+  fill('mq1', pains);
+  fill('mq2', pains.slice(2).concat(pains.slice(0,2)));
+
+  const faqs = [
+    ["What exactly does QZTrace do?", "QZTrace builds a fingerprinted map of your codebase, watches what changes between builds, and attributes real runtime coverage — automated and manual — to every test. Each build gets a risk-ranked, traceable list of the tests that actually need to run."],
+    ["Does the AI decide which tests to run?", "No. AI agents propose test mappings and candidate cases; the selection path itself is deterministic and auditable. The same commit always produces the same analysis, and every recommendation traces back to the method that produced it."],
+    ["Is our source code or test data safe?", "QZTrace is self-hosted on your infrastructure, and only coverage counters leave the application — no test inputs, no request or response contents, no personal data. Nothing reaches a repository without a human-approved pull request, and instrumentation is inert above your test environments."],
+    ["Can we remove it if it's not the right fit?", "Yes. Instrumentation strips in a single action, and your coverage data is retained for instant restore if you reinstate it later."],
+    ["What does QZTrace work with today?", ".NET, Node.js and Angular codebases on Azure DevOps (Repos, Pipelines, Test Plans), executing through Katalon, Playwright, LambdaTest HyperExecute and Perfecto. GitHub, Java, Python and Jira support is coming next."],
+    ["Does it handle manual and exploratory testing, not just automation?", "Yes — that's one of the things teams tell us is missing everywhere else. Testers drive the live application; QZTrace records which methods each session exercises and tags them to test cases with pass/fail, in the same inventory as your automated coverage."],
+    ["How is this different from the \u201crun only impacted tests\u201d feature already built into our pipeline or platform?", "Built-in impacted-test tooling is typically single-stack, single-machine, and stops at unit tests. QZTrace works across your full stack, compares a feature branch against main (not only build to build), selects the individual test rather than re-running its containing suite, and folds manual coverage into the same picture."],
+    ["How long until we see value?", "A free, read-only readiness scan in week one, PR-approved instrumentation in week two, and your first build-over-build impact report — on your own numbers — by week three."],
+    ["What does it cost?", "Every engagement starts with a free readiness scan, followed by a scoped, fixed 3-week pilot on one repository. Talk to a QE specialist for pricing scoped to your application estate."]
+  ];
+  const acc = document.getElementById('acc');
+  acc.innerHTML = faqs.map((f,i) =>
+    '<div class="acc-item' + (i===0?' open':'') + '">' +
+      '<button class="acc-q" type="button" aria-expanded="' + (i===0) + '" aria-controls="a' + i + '" id="q' + i + '">' +
+        '<span>' + f[0] + '</span><span class="pm" aria-hidden="true"></span></button>' +
+      '<div class="acc-a" id="a' + i + '" role="region" aria-labelledby="q' + i + '"><div><p>' + f[1] + '</p></div></div>' +
+    '</div>').join('');
+  acc.addEventListener('click', e => {
+    const btn = e.target.closest('.acc-q');
+    if(!btn) return;
+    const item = btn.parentElement;
+    const willOpen = !item.classList.contains('open');
+    acc.querySelectorAll('.acc-item.open').forEach(o => {
+      o.classList.remove('open');
+      o.querySelector('.acc-q').setAttribute('aria-expanded','false');
+    });
+    if(willOpen){ item.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+  });
+
+  const form = document.getElementById('leadForm');
+  const msg = document.getElementById('formMsg');
+  const email = document.getElementById('em');
+  form.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => { msg.textContent=''; msg.className='form-msg'; }));
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const fn = document.getElementById('fn').value.trim();
+    const em = email.value.trim();
+    msg.className = 'form-msg';
+    if(!fn){ msg.textContent = 'Enter your first name.'; msg.classList.add('err'); document.getElementById('fn').focus(); return; }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){ msg.textContent = 'Enter a valid work email.'; msg.classList.add('err'); email.focus(); return; }
+    msg.textContent = 'Thanks, ' + fn + ' — a QE specialist will reach out to schedule your readiness scan.';
+    msg.classList.add('ok');
+    form.reset();
+  });
+})();
+</script>
+</body>
+</html>
